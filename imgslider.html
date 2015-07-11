@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+<title>imgslider</title>
+
+<link rel="stylesheet" href="style.css" type="text/css"> 
+</head>
+
+<body>
+<div class="slide" id="slider">
+	<div style="width:1600px" class="img-contents">
+		<img src="https://fbcdn-sphotos-d-a.akamaihd.net/hphotos-ak-xfp1/v/t1.0-9/11046219_335315680009686_4291671850946591565_n.jpg?oh=04f79b3029bc2c008c602163d0265d56&oe=560B080B&__gda__=1442854018_c7df595b22d80303b2bbb717748164fa" alt="맥주 여섯개에 둘러싸인 브라운">
+		<img src="https://fbcdn-sphotos-d-a.akamaihd.net/hphotos-ak-xap1/v/t1.0-9/10985603_786512201431760_2970616632956450857_n.jpg?oh=245fbed51d567ef40ad62a955cf0ce2e&oe=55FD0CEE&__gda__=1441523250_0516a47e1e88db9a55c5790eab4b5587" alt="참치, 광어, 흑새치 뱃살이 나온 모듬회">
+		<img src="https://scontent-hkg3-1.xx.fbcdn.net/hphotos-xpa1/v/t1.0-9/21098_335875213287066_887954238892122431_n.jpg?oh=165e899b2e8049b8d3c75a512a526be3&oe=55F9C5B3" alt="라인 미니피규어 6종과 코니 저금통, 조은이 여자친구에게 선물해주었다">
+		<img src="https://scontent-hkg3-1.xx.fbcdn.net/hphotos-xat1/t31.0-8/11221328_844410902308556_2439563029259917204_o.jpg" alt="조은이 월드 오브 워크래프트에서 키우는 오크 전사 스크린샷">
+	</div>
+
+	<button type="button" class="btn-left"> </button>
+	<button type="button" class="btn-right"> </button>
+	
+	<!-- index 구현 시 가산점 -->
+	<div class="index">
+		<a href="#" class="index-item index-item-on">1</a>
+		<a href="#" class="index-item">2</a>
+		<a href="#" class="index-item">3</a>
+		<a href="#" class="index-item">4</a>
+	</div>
+	
+	<!-- auto rolling 구현 시 재생 / 정지 UI 구현 -->
+	<div class="controller">
+		<button type="button" class="btn-play">재생</button>
+		<button type="button" class="btn-pause">정지</button>
+	</div>
+</div>
+
+<script  type="text/javascript"  src="./libs/jquery-1.11.3.min.js"></script>
+<script  type="text/javascript"  src="./libs/jquery.easing.1.3.js"></script>
+<script>
+$(document).ready(function() {
+	var slider = new ImgSlider("#slider"); // 이미지 슬라이더 객체 생성
+});
+
+function ImgSlider(selector) {	// 이미지 슬라이더 생성자 함수
+	this.imgWidth = 400;		// 이미지 가로 크기
+	this.$imgContents = null;	// 이미지 내용(해당 인덱스 이미지 찾기)
+	this.currentIndex = 0;		// 현재 인덱스
+	this.imgLength = 0;			// 이미지 길이(총 4개)
+	this.$navItems = null;		// 이미지 하단 네비게이션 동그라미
+	this.timerID = 0;			// auto rolling시 사용
+	this.$slider = null;		// 이미지 슬라이더 객체
+	
+	this.init(selector);		// 변수 초기화 함수
+	this.initEvent();			// 이벤트 초기화 함수
+}
+
+ImgSlider.prototype.init=function(selector) {	// 변수 초기화 프로토타입 함수
+	this.$slider = $(selector);					// 해당 슬라이드 객체 할당
+	this.$imgContents = this.$slider.find(".img-contents");		// 해당 이미지 내용 찾아서 할당
+	this.imgLength = this.$imgContents.children("img").length;	// 이미지 길이 할당
+	this.$navItems = this.$slider.find(".index a");				// 하단 네비게이션 찾아서 할당
+};
+
+ImgSlider.prototype.initEvent=function(){		// 이벤트 초기화 프로토타입 함수
+	var _this = this;		//전역객체 참조 _this
+	
+	$(".btn-play").click(function(){	// 자동 rolling 버튼 클릭시
+		_this.startAutoPlay();
+	});
+	
+	$(".btn-pause").click(function(){	// 자동 rolling 정지 버튼 클릭시 
+		_this.pausePlay();
+	});
+	
+	$(".btn-right").click(function(){	// 오른쪽 화살표 클릭시
+		_this.nextImage();
+	});
+	
+	$(".btn-left").click(function(){	// 왼쪽 화살표 클릭시
+		_this.prevImage();
+	});
+	
+	this.$navItems.mouseenter(function(){			// 이미지 하단 네비게이션 동그라미에 마우스를 갖다댈 시
+		var index = _this.$navItems.index(this);
+		_this.showImageAt(index);
+	});
+};
+
+ImgSlider.prototype.nextImage=function(){		// 다음이미지 보여주기 위한 프로토타입 함수
+	this.showImageAt(this.currentIndex+1);
+};
+
+ImgSlider.prototype.prevImage=function(){		// 이전이미지 보여주기 위한 프로토타입 함수
+	this.showImageAt(this.currentIndex-1);
+};
+
+ImgSlider.prototype.showImageAt=function(index){	// 이미지 보여주기 프로토타입 함수
+	if(index < 0) {
+		index = this.imgLength - 1;
+	}
+	if(index >= this.imgLength) {
+		index = 0;
+	}
+	this.showNavItemAt(index);	// 이미지 하단 네비게이션도 함께 움직이도록
+	this.currentIndex = index;	// 현재 인덱스 할당
+	
+	var pos = -(this.currentIndex * this.imgWidth);	// 이미지 이동을 위해 이미지 시작위치 할당
+	this.$imgContents.stop().animate({
+		left:pos
+	},300);
+};
+
+ImgSlider.prototype.showNavItemAt=function(index){	// 이미지 하단 네비게이션 보여주는 프로토타입 함수
+	this.$navItems.eq(this.currentIndex).removeClass("index-item-on");	// 다음 인덱스로 이동시 현재 인덱스의 색 클래스 제거
+	this.$navItems.eq(index).addClass("index-item-on");		// 인덱스 이동시 색 클래스 add
+};
+
+ImgSlider.prototype.startAutoPlay=function(){		// 이미지 자동 rolling 프로토타입 함수
+	if(this.timerID == 0){		// 움직이지 않을 때 timerID == 0
+		var _this = this;
+		this.timerID = setInterval(function(){	// setIterval() 함수를 이용하여 일정 간격으로 수행
+			_this.nextImage();
+		},2000);
+	}
+};
+
+ImgSlider.prototype.pausePlay=function(){	// 이미지 자동 rolling 정지 프로토타입 함수
+	if(this.timerID != 0){
+		clearInterval(this.timerID);		// clearInterval() 함수를 이용하여 이동 중지
+		this.timerID = 0;					// timerID를 0으로 할당하여 움직이지 않는 상태를 만들어줌
+	}
+};
+
+	
+</script>	
+	
+</body>
+</html>
